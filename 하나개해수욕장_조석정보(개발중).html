@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>하나개 해수욕장 조석정보</title>
+
+<style>
+
+html, body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    min-height:100vh;
+    overflow:auto;
+    background:linear-gradient(160deg, #0b1f33 0%, #123a54 55%, #0e2e46 100%);
+    background-repeat:no-repeat;
+    background-attachment:fixed;
+    color:#fff;
+    font-family:"Malgun Gothic", Arial, sans-serif;
+
+    /* 콘텐츠를 화면 정중앙에 배치 */
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.box{
+    width:1200px;
+    height:800px;
+    box-sizing:border-box;
+    padding:20px 50px;
+    display:flex;
+    flex-direction:column;
+    flex-shrink:0;
+    overflow:hidden;
+}
+
+h1{
+    text-align:center;
+    font-size:56px;
+    margin:10px 0 4px;
+    letter-spacing:2px;
+}
+
+.date{
+    text-align:center;
+    font-size:30px;
+    margin-bottom:20px;
+    color:#cfe8ff;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+}
+
+td{
+    border:2px solid #3a5670;
+    padding:16px 10px;
+    font-size:36px;
+    text-align:center;
+}
+
+.high{ color:#00BFFF; font-weight:bold; }
+.low{ color:#FFA500; font-weight:bold; }
+
+.countdown{
+    margin-top:25px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    gap:60px;
+    flex:1;
+    min-height:0;
+}
+
+.countdown .block{
+    flex:1;
+    max-width:480px;
+    text-align:center;
+    line-height:1.5;
+}
+
+.countdown .label{
+    font-size:28px;
+    opacity:0.9;
+}
+
+.countdown .sub{
+    font-size:18px;
+    opacity:0.7;
+    display:block;
+}
+
+.countdown .info{
+    font-size:26px;
+    margin-top:4px;
+}
+
+.countdown .timer{
+    font-size:32px;
+    margin-top:6px;
+    transition:all .25s ease;
+}
+
+.countdown .timer.urgent{
+    color:#ff4b4b;
+    font-size:44px;
+    font-weight:bold;
+    animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.4; }
+}
+
+.empty-msg{
+    text-align:center;
+    font-size:30px;
+    opacity:0.6;
+    padding:24px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>하나개 해수욕장</h1>
+
+<div class="date" id="today"></div>
+
+<table id="tideTable"></table>
+
+<div class="countdown" id="countdown"></div>
+
+</div>
+
+<script>
+
+const API_URL =
+  "https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService?obsCode=DT_0093&serviceKey=b0563c720a181e67144938a7ebcfb7a8c8d18ae28bd4e417edac71792149d575&type=json";
+
+const REFRESH_MS = 5 * 60 * 1000;   // API 갱신 주기: 5분
+const URGENT_SEC = 20 * 60;         // 간조 20분 전부터 강조 표시
+const MAX_ROWS = 6;                 // 1200x800 화면에 맞춰 최대 표시 행 수
+
+let tideData = [];
+let lastFutureCount = null;
+
+function parseDate(str){
+    let p = str.split(" ");
+    let d = p[0].split("-");
+    let t = p[1].split(":");
+    return new Date(d[0], d[1]-1, d[2], t[0], t[1]);
+}
+
+function isHigh(t){
+    return (t.extrSe=="1" || t.extrSe=="3");
+}
+
+// ---- API 호출 (실패해도 기존 데이터 유지) ----
+async function fetchTideData(){
+    try{
+        const res = await fetch(API_URL);
+        const json = await res.json();
+        const items = json.body.items.item;
+        if(!Array.isArray(items) || items.length===0){
+            throw new Error("빈 데이터 응답");
+        }
+        return items;
+    }catch(err){
+        console.error("조석 데이터 갱신 실패, 기존 데이터 유지:", err);
+        return null;
+    }
+}
+
+async function loadTide(){
+    const items = await fetchTideData();
+    if(items){
+        tideData = items;
+    }
+    showTable();
+}
+
+// ---- 표 렌더링: 지난 시각 제외, 최대 MAX_ROWS개 ----
+function showTable(){
+    let now = new Date();
+    let future = tideData
+        .filter(t => parseDate(t.predcDt) > now)
+        .slice(0, MAX_ROWS);
+
+    lastFutureCount = future.length;
+
+    if(future.length === 0){
+        document.getElementById("tideTable").innerHTML =
+            `<tr><td class="empty-msg">표시할 예정 데이터가 없습니다</td></tr>`;
+    }else{
+        let html = "";
+        future.forEach(t=>{
+            let high = isHigh(t);
+            html += `
+                <tr>
+                    <td class="${high?'high':'low'}">${high?'만조':'간조'}</td>
+                    <td>${t.predcDt}</td>
+                    <td>${t.predcTdlvVl} cm</td>
+                </tr>
+            `;
+        });
+        document.getElementById("tideTable").innerHTML = html;
+    }
+
+    const weekdayNames = ["일","월","화","수","목","금","토"];
+    document.getElementById("today").innerHTML =
+        now.getFullYear()+"-"+
+        String(now.getMonth()+1).padStart(2,"0")+"-"+
+        String(now.getDate()).padStart(2,"0")+
+        " ("+weekdayNames[now.getDay()]+")";
+}
+
+// 매초 지난 시각이 생겼는지 가볍게 체크 -> 필요할 때만 표 다시 그림 (깜빡임 방지)
+function checkTableRefresh(){
+    let now = new Date();
+    let futureCount = tideData
+        .filter(t => parseDate(t.predcDt) > now)
+        .slice(0, MAX_ROWS).length;
+
+    if(futureCount !== lastFutureCount){
+        showTable();
+    }
+}
+
+function remain(target){
+    if(!target) return null;
+    let diff = target - new Date();
+    if(diff < 0) diff = 0;
+    let sec = Math.floor(diff/1000);
+    let h = Math.floor(sec/3600);
+    let m = Math.floor((sec%3600)/60);
+    let s = sec%60;
+    return {
+        text: String(h).padStart(2,"0")+"시간 "+
+              String(m).padStart(2,"0")+"분 "+
+              String(s).padStart(2,"0")+"초",
+        totalSec: sec
+    };
+}
+
+function updateCountdown(){
+    if(tideData.length === 0) return;
+
+    let now = new Date();
+    let nextHigh = null;
+    let nextLow = null;
+
+    tideData.forEach(t=>{
+        let time = parseDate(t.predcDt);
+        if(time > now){
+            if(isHigh(t)){
+                if(!nextHigh || time < nextHigh.time){
+                    nextHigh = { time:time, height:t.predcTdlvVl };
+                }
+            }else{
+                if(!nextLow || time < nextLow.time){
+                    nextLow = { time:time, height:t.predcTdlvVl };
+                }
+            }
+        }
+    });
+
+    let text = "";
+
+    if(nextHigh){
+        let r = remain(nextHigh.time);
+        text += `
+            <div class="block">
+                <div class="label">🌊 다음 만조<span class="sub">(물 빠지기까지 남은시간)</span></div>
+                <div class="info">${nextHigh.time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})} (${nextHigh.height}cm)</div>
+                <div class="timer">⏱ ${r.text}</div>
+            </div>
+        `;
+    }
+
+    if(nextLow){
+        let r = remain(nextLow.time);
+        let urgent = r.totalSec <= URGENT_SEC;
+        text += `
+            <div class="block">
+                <div class="label">🌊 다음 간조<span class="sub">(물 들어오기까지 남은시간)</span></div>
+                <div class="info">${nextLow.time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})} (${nextLow.height}cm)</div>
+                <div class="timer ${urgent?'urgent':''}">⏱ ${r.text}${urgent?' · 곧 물이 들어옵니다':''}</div>
+            </div>
+        `;
+    }
+
+    document.getElementById("countdown").innerHTML = text;
+}
+
+function tick(){
+    updateCountdown();
+    checkTableRefresh();
+}
+
+async function init(){
+    await loadTide();
+    updateCountdown();
+
+    setInterval(tick, 1000);           // 카운트다운 + 지난시각 필터링, 1초마다 (인터벌 딱 1번만 등록)
+    setInterval(loadTide, REFRESH_MS); // API 재호출, 5분마다 (위 인터벌과 완전히 독립)
+}
+
+init();
+
+</script>
+
+</body>
+</html>
