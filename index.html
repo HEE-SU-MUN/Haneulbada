@@ -319,7 +319,7 @@ function updateCountdown(){
             <div class="block">
                 <div class="label"> 물 들어오기까지 남은 시간 <span class="sub">(다음 간조)</span></div>
                 <div class="info">${nextLow.time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})} (${nextLow.height}cm)</div>
-                <div class="timer ${urgent?'urgent':''}"> ${r.text}${urgent?' · 곧 물이 들어옵니다':''}</div>
+                <div class="timer ${urgent?'urgent':''}"> ${r.text}${urgent?' <br>현재 물이 들어오고 있습니다.<br>안전한 곳으로 이동하시기 바랍니다.':''}</div>
             </div>
         `;
     }
