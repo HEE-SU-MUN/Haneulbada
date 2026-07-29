@@ -154,7 +154,7 @@ td{
     align-items:center;
     justify-content:center;
     text-align:center;
-    font-size:34px;
+    font-size:31px;
     font-weight:bold;
     color:#ffd166;
     line-height:1.6;
@@ -212,7 +212,7 @@ td{
 
 <div class="box">
 
-<h1>하나개 해수욕장</h1>
+<h1>하나개 해수욕장 물때정보</h1>
 
 <div class="date" id="today"></div>
 
@@ -225,7 +225,7 @@ td{
 <table id="tideTable"></table>
 
 <div class="notice" id="notice">
-    간조이후부터 물이 들어오기 시작하니 안전에 유의하여 주시기 바랍니다.
+    저조이후부터 물이 들어오기 시작하니 안전에 유의하여 주시기 바랍니다.
 </div>
 
 </div>
@@ -326,7 +326,7 @@ function showTable(){
             let timeOnly = t.predcDt.split(" ")[1]; // "HH:mm"만 추출
             html += `
                 <tr>
-                    <td class="${high?'high':'low'}">${high?'물 빠지는 시간 (만조)':'물 들어오는 시간 (간조)'}</td>
+                    <td class="${high?'high':'low'}">${high?'물 빠지는 시간 (고조)':'물 들어오는 시간 (저조)'}</td>
                     <td>${timeOnly}</td>
                     <td>${t.predcTdlvVl} cm</td>
                 </tr>
