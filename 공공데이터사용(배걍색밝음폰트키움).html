@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>하나개 해수욕장 조석정보</title>
+
+<style>
+
+html, body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    min-height:100vh;
+    overflow:auto;
+    background:linear-gradient(160deg, #013a5c 0%, #045a82 55%, #0b7398 100%);
+    background-repeat:no-repeat;
+    background-attachment:fixed;
+    color:#fff;
+    font-family:"Malgun Gothic", Arial, sans-serif;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.box{
+    width:1200px;
+    height:880px;
+    box-sizing:border-box;
+    padding:24px 55px;
+    display:flex;
+    flex-direction:column;
+    flex-shrink:0;
+    overflow:hidden;
+}
+
+h1{
+    text-align:center;
+    font-size:54px;
+    margin:6px 0 4px;
+    letter-spacing:1px;
+}
+
+.date-row{
+    display:flex;
+    align-items:baseline;
+    justify-content:center;
+    gap:26px;
+    margin-bottom:16px;
+}
+
+.date-row #today{
+    font-size:40px;
+    font-weight:bold;
+    color:#ffffff;
+}
+
+.date-row #clock{
+    font-size:38px;
+    font-weight:bold;
+    font-variant-numeric:tabular-nums;
+    color:#8fe8ff;
+    letter-spacing:1px;
+}
+
+/* ---- 밀물/썰물 상태 경광등 ---- */
+.tide-status{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    margin-bottom:24px;
+    font-size:36px;
+    font-weight:bold;
+}
+
+.tide-status .beacon{
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    animation:beaconBlink 1s infinite;
+}
+
+.tide-status.rising .beacon{
+    background:#ff3b3b;
+    box-shadow:0 0 18px 5px rgba(255,59,59,0.8);
+}
+.tide-status.rising .status-text{ color:#ff3b3b; }
+
+.tide-status.falling .beacon{
+    background:#2ecc71;
+    box-shadow:0 0 18px 5px rgba(46,204,113,0.8);
+}
+.tide-status.falling .status-text{ color:#2ecc71; }
+
+@keyframes beaconBlink{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.3; }
+}
+
+/* ---- 만조/간조 2단 표 ---- */
+.tide-table{
+    display:flex;
+    border:2px solid #5a8fb3;
+    border-radius:8px;
+    overflow:hidden;
+    margin-bottom:22px;
+    background:rgba(255,255,255,0.05);
+}
+
+.tide-col{
+    flex:1;
+}
+
+.tide-col + .tide-col{
+    border-left:2px solid #5a8fb3;
+}
+
+.tide-col-header{
+    text-align:center;
+    font-size:40px;
+    font-weight:bold;
+    padding:16px 0;
+    background:rgba(255,255,255,0.08);
+    border-bottom:2px solid #5a8fb3;
+}
+
+.tide-col.high .tide-col-header{ color:#ff4d4d; }
+.tide-col.low .tide-col-header{ color:#4da3ff; }
+
+.tide-row{
+    display:flex;
+    align-items:baseline;
+    justify-content:center;
+    gap:18px;
+    font-size:44px;
+    font-weight:bold;
+    padding:14px 8px;
+}
+
+.tide-row.empty{
+    opacity:0.5;
+    font-weight:normal;
+    font-size:26px;
+}
+
+/* ---- 안내 문구 + 오차 안내 박스 (서로 붙여서 하단 고정) ---- */
+.bottom-info{
+    margin-top:auto;
+}
+
+.notice{
+    text-align:center;
+    font-size:36px;
+    font-weight:bold;
+    color:#ffd166;
+    line-height:1.5;
+    margin-bottom:16px;
+}
+
+.disclaimer{
+    display:flex;
+    align-items:flex-start;
+    gap:20px;
+    border:2px solid #6fa8c9;
+    border-radius:12px;
+    padding:24px 28px;
+    font-size:30px;
+    line-height:1.5;
+    color:#f0f6fa;
+}
+
+.disclaimer .icon{
+    font-size:40px;
+    line-height:1;
+}
+
+.disclaimer b{
+    color:#ffd166;
+}
+
+#loading{
+    position:fixed;
+    top:0; left:0;
+    width:100%;
+    height:100%;
+    background:linear-gradient(160deg, #013a5c 0%, #045a82 55%, #0b7398 100%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:10;
+}
+
+#loading .spinner{
+    width:56px;
+    height:56px;
+    border:6px solid rgba(255,255,255,0.2);
+    border-top-color:#00BFFF;
+    border-radius:50%;
+    animation:spin 0.9s linear infinite;
+    margin-bottom:20px;
+}
+
+#loading .msg{
+    font-size:28px;
+    opacity:0.85;
+}
+
+@keyframes spin{
+    to{ transform:rotate(360deg); }
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="loading">
+    <div class="spinner"></div>
+    <div class="msg">조석 데이터를 불러오는 중...</div>
+</div>
+
+<div class="box">
+
+<h1>하나개 해수욕장 물때정보</h1>
+
+<div class="date-row">
+    <span id="today"></span>
+    <span id="clock"></span>
+</div>
+
+<div class="tide-status" id="tideStatus" style="display:none;">
+    <span class="beacon"></span>
+    <span class="status-text" id="statusText"></span>
+</div>
+
+<div class="tide-table">
+    <div class="tide-col high">
+        <div class="tide-col-header">만조(고조) ▲</div>
+        <div class="tide-col-body" id="highCol"></div>
+    </div>
+    <div class="tide-col low">
+        <div class="tide-col-header">간조(저조) ▼</div>
+        <div class="tide-col-body" id="lowCol"></div>
+    </div>
+</div>
+
+<div class="bottom-info">
+    <div class="notice">
+        저조(간조) 이후부터 물이 들어오기 시작하니 안전에 유의하여 주시기 바랍니다.
+    </div>
+
+    <div class="disclaimer">
+        <span class="icon">⚠️</span>
+        <span>
+            해당 정보는 소무의도 기준으로 약 <b>20분</b>의 오차가 있으므로,
+            퇴수 시 <b>30분 이상 여유를 가지고</b> 안전하게 이동해 주시기 바랍니다.
+        </span>
+    </div>
+</div>
+
+</div>
+
+<script>
+
+const API_BASE =
+  "https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService?obsCode=DT_0093&serviceKey=b0563c720a181e67144938a7ebcfb7a8c8d18ae28bd4e417edac71792149d575&type=json";
+
+const REFRESH_MS = 5 * 60 * 1000;   // API 갱신 주기: 5분
+
+let tideData = [];          // 어제+오늘 데이터를 합쳐서 시간순 정렬해 보관
+let lastLoadedDateStr = null;
+
+// ---- 테스트용 시간 오프셋 ----
+// URL에 ?testTime=2026-07-30T10:40:00 을 붙이면 그 시각부터 실시간처럼 흘러갑니다.
+const TIME_OFFSET_MS = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const testTime = params.get("testTime");
+    if(!testTime) return 0;
+
+    const target = new Date(testTime);
+    if(isNaN(target.getTime())) return 0;
+
+    console.warn("⚠ 테스트 모드: 기준 시각을", target.toString(), "로 설정함");
+    return target.getTime() - Date.now();
+})();
+
+function getNow(){
+    return new Date(Date.now() + TIME_OFFSET_MS);
+}
+
+function pad2(n){
+    return String(n).padStart(2, "0");
+}
+
+function dateStrOf(d){
+    return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
+}
+
+function reqDateStrOf(d){
+    return "" + d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate());
+}
+
+function parseDate(str){
+    let p = str.split(" ");
+    let d = p[0].split("-");
+    let t = p[1].split(":");
+    return new Date(d[0], d[1]-1, d[2], t[0], t[1]);
+}
+
+function isHigh(t){
+    return (t.extrSe=="1" || t.extrSe=="3");
+}
+
+// ---- 특정 날짜(yyyymmdd) 조석 데이터 호출 ----
+async function fetchTideForDate(reqDate){
+    try{
+        const res = await fetch(`${API_BASE}&reqDate=${reqDate}`);
+        const json = await res.json();
+        const items = json.body.items.item;
+        if(!items) return [];
+        return Array.isArray(items) ? items : [items]; // 1건일 때 객체로 오는 경우 대비
+    }catch(err){
+        console.error("조석 API 호출 실패 (" + reqDate + "):", err);
+        return null;
+    }
+}
+
+// ---- 오늘 + 어제 데이터를 합쳐서 로드 (오늘 첫 이벤트 증감 계산용) ----
+async function loadTide(){
+    let now = getNow();
+    let yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const [todayItems, yestItems] = await Promise.all([
+        fetchTideForDate(reqDateStrOf(now)),
+        fetchTideForDate(reqDateStrOf(yesterday))
+    ]);
+
+    if(todayItems){
+        let merged = [...(yestItems || []), ...todayItems];
+        merged.sort((a,b) => parseDate(a.predcDt) - parseDate(b.predcDt));
+        tideData = merged;
+    }
+    // todayItems가 null(호출 실패)이면 기존 tideData 그대로 유지
+
+    lastLoadedDateStr = dateStrOf(now);
+    updateDateDisplay();
+    updateTideStatus();
+    renderTideTable();
+}
+
+// ---- 날짜 표시 ----
+function updateDateDisplay(){
+    let now = getNow();
+    const weekdayNames = ["일","월","화","수","목","금","토"];
+    document.getElementById("today").innerHTML =
+        dateStrOf(now) + " (" + weekdayNames[now.getDay()] + ")";
+}
+
+// ---- 시계 표시 (초단위) ----
+function updateClock(){
+    let now = getNow();
+    document.getElementById("clock").textContent =
+        pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds());
+}
+
+// ---- 기본 밀물(rising)/썰물(falling) 상태 ----
+function getTideState(){
+    let now = getNow();
+    let past = tideData.filter(t => parseDate(t.predcDt) <= now);
+    let future = tideData.filter(t => parseDate(t.predcDt) > now);
+
+    if(past.length > 0){
+        let lastEvent = past.reduce((a,b) =>
+            parseDate(a.predcDt) > parseDate(b.predcDt) ? a : b
+        );
+        return isHigh(lastEvent) ? "falling" : "rising";
+    }
+
+    if(future.length > 0){
+        let nextEvent = future.reduce((a,b) =>
+            parseDate(a.predcDt) < parseDate(b.predcDt) ? a : b
+        );
+        return isHigh(nextEvent) ? "rising" : "falling";
+    }
+
+    return null;
+}
+
+// ---- 간조 임박 / 만조 임박 경고 문구 판단 ----
+// 간조 60~30분 전       : "곧 물이 들어옵니다"
+// 간조 30분 전 ~ 만조 30분 전 : "물이 들어옵니다. 안전한 곳으로 이동하여 주세요"
+function getWarningInfo(){
+    let now = getNow();
+    let past = tideData.filter(t => parseDate(t.predcDt) <= now);
+    let future = tideData.filter(t => parseDate(t.predcDt) > now);
+    if(past.length === 0 || future.length === 0) return null;
+
+    let prevEvent = past.reduce((a,b) =>
+        parseDate(a.predcDt) > parseDate(b.predcDt) ? a : b
+    );
+    let nextEvent = future.reduce((a,b) =>
+        parseDate(a.predcDt) < parseDate(b.predcDt) ? a : b
+    );
+
+    // 썰물 중, 다음이 간조 -> 간조 임박 경고
+    if(isHigh(prevEvent) && !isHigh(nextEvent)){
+        let diffMin = (parseDate(nextEvent.predcDt) - now) / 60000;
+        if(diffMin <= 60 && diffMin > 30){
+            return { color:"rising", text:"곧 물이 들어옵니다" };
+        }
+        if(diffMin <= 30){
+            return { color:"rising", text:"물이 들어옵니다. 안전한 곳으로 이동하여 주세요" };
+        }
+        return null;
+    }
+
+    // 밀물 중(간조 지남), 다음이 만조 -> 만조 30분 전까지 경고 유지
+    if(!isHigh(prevEvent) && isHigh(nextEvent)){
+        let diffMin = (parseDate(nextEvent.predcDt) - now) / 60000;
+        if(diffMin > 30){
+            return { color:"rising", text:"물이 들어옵니다. 안전한 곳으로 이동하여 주세요" };
+        }
+        return null;
+    }
+
+    return null;
+}
+
+// ---- 상태 경광등 갱신 ----
+function updateTideStatus(){
+    const el = document.getElementById("tideStatus");
+    const textEl = document.getElementById("statusText");
+    if(!el || !textEl) return;
+
+    let warn = getWarningInfo();
+    let state = warn ? warn.color : getTideState();
+
+    if(!state){
+        el.style.display = "none";
+        return;
+    }
+
+    el.style.display = "flex";
+    el.classList.remove("rising", "falling");
+    el.classList.add(state);
+
+    textEl.textContent = warn
+        ? warn.text
+        : (state === "rising" ? "현재 밀물 상태" : "현재 썰물 상태");
+}
+
+// ---- 오늘 날짜의 만조/간조를 2단 표로 렌더 (cm만 표시) ----
+function renderTideTable(){
+    let now = getNow();
+    let todayDate = dateStrOf(now);
+
+    let highs = [];
+    let lows = [];
+
+    tideData.forEach((t) => {
+        let datePart = t.predcDt.split(" ")[0];
+        if(datePart !== todayDate) return;
+
+        let entry = {
+            time: t.predcDt.split(" ")[1],
+            height: t.predcTdlvVl
+        };
+
+        if(isHigh(t)) highs.push(entry); else lows.push(entry);
+    });
+
+    document.getElementById("highCol").innerHTML = renderRows(highs);
+    document.getElementById("lowCol").innerHTML = renderRows(lows);
+}
+
+function renderRows(list){
+    if(list.length === 0){
+        return `<div class="tide-row empty">데이터 없음</div>`;
+    }
+    return list.map(e => `
+        <div class="tide-row">
+            <span>${e.time}</span>
+            <span>${e.height} cm</span>
+        </div>
+    `).join("");
+}
+
+function tick(){
+    updateTideStatus();
+    updateClock();
+
+    // 자정을 넘기면 5분 주기를 기다리지 않고 바로 갱신
+    let curDateStr = dateStrOf(getNow());
+    if(curDateStr !== lastLoadedDateStr){
+        loadTide();
+    }
+}
+
+async function init(){
+    await loadTide();
+    updateClock();
+
+    const loadingEl = document.getElementById("loading");
+    if(loadingEl) loadingEl.remove();
+
+    setInterval(tick, 1000);           // 상태 갱신 + 자정 전환 감지, 1초마다
+    setInterval(loadTide, REFRESH_MS); // API 재호출, 5분마다
+}
+
+init();
+
+</script>
+
+</body>
+</html>
