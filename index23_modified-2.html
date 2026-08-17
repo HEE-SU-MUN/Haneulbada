@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>하나개 해수욕장 조석정보</title>
+
+<style>
+
+html, body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    min-height:100vh;
+    overflow:auto;
+    background:
+        linear-gradient(180deg, rgba(4,20,40,0.35) 0%, rgba(4,20,40,0.15) 40%, rgba(4,20,40,0.45) 100%),
+        url("images/beach-bg.jpg"),
+        linear-gradient(180deg, #0f5fa8 0%, #1f8fc9 30%, #4cc2d9 60%, #a8e6cf 100%);
+    background-repeat:no-repeat;
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+    color:#fff;
+    font-family:"Malgun Gothic", Arial, sans-serif;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.box{
+    width:1200px;
+    height:880px;
+    box-sizing:border-box;
+    padding:20px 44px;
+    display:flex;
+    flex-direction:column;
+    flex-shrink:0;
+    overflow:hidden;
+}
+
+h1{
+    text-align:center;
+    font-size:74px;
+    margin:0 0 12px;
+    letter-spacing:1px;
+    color:#ffffff;
+    text-shadow:0 2px 6px rgba(0,30,60,0.45);
+}
+
+.date-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    margin-bottom:16px;
+    font-size:28px;
+    font-weight:bold;
+    color:#0b2a4a;
+    background:rgba(255,255,255,0.55);
+    border-radius:36px;
+    padding:7px 26px;
+    width:fit-content;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.date-row .sep{
+    opacity:0.4;
+}
+
+.date-row #clock{
+    color:#c0392b;
+    font-variant-numeric:tabular-nums;
+}
+
+/* ---- 상태 배너 ---- */
+.status-banner{
+    flex:1;
+    min-height:0;
+    border-radius:20px;
+    margin-bottom:16px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.3);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+}
+
+.status-banner.possible{
+    background:#0e8f3c;
+    animation:glowPossible 4.5s ease-in-out infinite;
+}
+.status-banner.impossible{
+    background:rgba(200,31,31,0.35);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    animation:glowImpossible 4.5s ease-in-out infinite;
+}
+
+@keyframes glowPossible{
+    0%,100%{ box-shadow:0 6px 18px rgba(0,0,0,0.3); }
+    50%{ box-shadow:0 6px 30px rgba(60,220,120,0.45); }
+}
+
+@keyframes glowImpossible{
+    0%,100%{ box-shadow:0 6px 18px rgba(0,0,0,0.3); }
+    50%{ box-shadow:0 6px 30px rgba(255,70,70,0.45); }
+}
+
+.status-banner .main-line{
+    position:relative;
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.status-banner .main-text{
+    text-align:center;
+    font-size:64px;
+    font-weight:900;
+    color:#fff;
+    text-shadow:0 2px 6px rgba(0,0,0,0.35);
+}
+
+.status-banner .flank{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:56px;
+}
+.status-banner .flank.left{ left:36px; }
+.status-banner .flank.right{ right:36px; }
+
+.status-banner .sub-line{
+    font-size:30px;
+    color:#fff;
+    opacity:0.95;
+    margin-top:10px;
+    font-weight:bold;
+}
+
+/* ---- 갯벌체험 가능/불가능 시각 + 다음 만조/간조 카드 ---- */
+.mudflat-card{
+    flex:1;
+    min-height:0;
+    display:flex;
+    border-radius:18px;
+    overflow:hidden;
+    background:rgba(6,30,52,0.55);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);
+    margin-bottom:16px;
+}
+
+.mudflat-left{
+    position:relative;
+    flex:1.1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:16px;
+    border-right:2px solid rgba(255,255,255,0.2);
+}
+
+.mudflat-card.possible .mudflat-left{
+    background:radial-gradient(circle at 50% 32%, rgba(46,204,113,0.35), transparent 68%);
+}
+.mudflat-card.impossible .mudflat-left{
+    background:radial-gradient(circle at 50% 32%, rgba(255,90,90,0.22), transparent 68%);
+}
+
+.mudflat-label{
+    font-size:34px;
+    font-weight:bold;
+    color:#cfe8ff;
+    margin-bottom:8px;
+    padding:5px 18px;
+    border-radius:20px;
+    display:inline-block;
+}
+
+.mudflat-card.possible .mudflat-label{
+    color:#0b2a1a;
+    background:#5be89a;
+    box-shadow:0 0 16px rgba(91,232,154,0.7);
+}
+.mudflat-card.impossible .mudflat-label{
+    color:#fff;
+    background:rgba(255,255,255,0.18);
+    border:1px solid rgba(255,255,255,0.4);
+}
+
+.mudflat-time{
+    font-size:118px;
+    font-weight:900;
+    color:#ffffff;
+    line-height:1;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 2px 8px rgba(0,0,0,0.4);
+}
+
+.mudflat-card.possible .mudflat-time{
+    color:#9dffc4;
+    text-shadow:0 0 22px rgba(91,232,154,0.75);
+}
+
+.mudflat-right{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+}
+
+.next-row{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:6px 10px;
+    overflow:hidden;
+}
+
+.next-row.high{
+    border-bottom:2px solid rgba(255,255,255,0.2);
+}
+
+.next-row .next-label{
+    font-size:22px;
+    font-weight:bold;
+    color:#cfe8ff;
+}
+
+.next-row .next-time{
+    font-size:46px;
+    font-weight:900;
+    font-variant-numeric:tabular-nums;
+}
+
+.next-row.high .next-time{ color:#ff6b6b; }
+.next-row.low .next-time{ color:#6fb8ff; }
+
+.next-row .next-height{
+    font-size:20px;
+    font-weight:bold;
+    color:#dce8f2;
+}
+
+/* ---- 하단 경고 박스 (내용은 직접 입력 예정, 자리만 확보) ---- */
+.warn-box{
+    background:rgba(255,255,255,0.15);
+    border:2px dashed rgba(255,255,255,0.5);
+    border-radius:12px;
+    padding:12px 20px;
+    min-height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.warn-box .warn-placeholder{
+    font-size:18px;
+    color:rgba(255,255,255,0.7);
+    font-style:italic;
+}
+
+#loading{
+    position:fixed;
+    top:0; left:0;
+    width:100%;
+    height:100%;
+    background:linear-gradient(180deg, #1976c9 0%, #3fa9dc 32%, #6fd0e8 62%, #bfead9 100%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:10;
+}
+
+#loading .spinner{
+    width:56px;
+    height:56px;
+    border:6px solid rgba(255,255,255,0.4);
+    border-top-color:#0b2a4a;
+    border-radius:50%;
+    animation:spin 0.9s linear infinite;
+    margin-bottom:20px;
+}
+
+#loading .msg{
+    font-size:26px;
+    color:#0b2a4a;
+    font-weight:bold;
+}
+
+@keyframes spin{
+    to{ transform:rotate(360deg); }
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="loading">
+    <div class="spinner"></div>
+    <div class="msg">조석 데이터를 불러오는 중...</div>
+</div>
+
+<div class="box">
+
+<h1>하나개 해수욕장 물때정보</h1>
+
+<div class="date-row">
+    <span>📅 <span id="today"></span></span>
+    <span class="sep">|</span>
+    <span>🕐 <span id="clock"></span> 현재</span>
+</div>
+
+<div class="status-banner" id="statusBanner" style="display:none;">
+    <div class="main-line">
+        <span class="flank left" id="statusIconLeft">🌊</span>
+        <span id="statusText" class="main-text"></span>
+        <span class="flank right" id="statusIconRight">🌊</span>
+    </div>
+    <div class="sub-line" id="statusSub"></div>
+</div>
+
+<div class="mudflat-card" id="mudflatCard">
+    <div class="mudflat-left">
+        <div class="mudflat-label" id="mudflatLabel">-</div>
+        <div class="mudflat-time" id="mudflatTime">--:--</div>
+    </div>
+    <div class="mudflat-right">
+        <div class="next-row high">
+            <span class="next-label">다음 만조</span>
+            <span class="next-time" id="nextHighTime">--:--</span>
+            <span class="next-height" id="nextHighHeight">- cm</span>
+        </div>
+        <div class="next-row low">
+            <span class="next-label">다음 간조</span>
+            <span class="next-time" id="nextLowTime">--:--</span>
+            <span class="next-height" id="nextLowHeight">- cm</span>
+        </div>
+    </div>
+</div>
+
+<div class="warn-box">
+    <span class="warn-placeholder">경고 문구 입력 영역</span>
+</div>
+
+</div>
+
+<script>
+
+const API_BASE =
+  "https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService?obsCode=DT_0093&serviceKey=b0563c720a181e67144938a7ebcfb7a8c8d18ae28bd4e417edac71792149d575&type=json";
+
+const REFRESH_MS = 5 * 60 * 1000;   // API 갱신 주기: 5분
+
+let tideData = [];          // 오늘+내일 데이터를 합쳐서 시간순 정렬해 보관
+let lastLoadedDateStr = null;
+
+// ---- 테스트용 시간 오프셋 ----
+// URL에 ?testTime=2026-08-10T20:30:00 을 붙이면 그 시각부터 실시간처럼 흘러갑니다.
+const TIME_OFFSET_MS = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const testTime = params.get("testTime");
+    if(!testTime) return 0;
+
+    const target = new Date(testTime);
+    if(isNaN(target.getTime())) return 0;
+
+    console.warn("⚠ 테스트 모드: 기준 시각을", target.toString(), "로 설정함");
+    return target.getTime() - Date.now();
+})();
+
+function getNow(){
+    return new Date(Date.now() + TIME_OFFSET_MS);
+}
+
+function pad2(n){
+    return String(n).padStart(2, "0");
+}
+
+function reqDateStrOf(d){
+    return "" + d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate());
+}
+
+function parseDate(str){
+    let p = str.split(" ");
+    let d = p[0].split("-");
+    let t = p[1].split(":");
+    return new Date(d[0], d[1]-1, d[2], t[0], t[1]);
+}
+
+function isHigh(t){
+    return (t.extrSe=="1" || t.extrSe=="3");
+}
+
+// ---- 특정 날짜(yyyymmdd) 조석 데이터 호출 ----
+async function fetchTideForDate(reqDate){
+    try{
+        const res = await fetch(`${API_BASE}&reqDate=${reqDate}`);
+        const json = await res.json();
+        const items = json.body.items.item;
+        if(!items) return [];
+        return Array.isArray(items) ? items : [items];
+    }catch(err){
+        console.error("조석 API 호출 실패 (" + reqDate + "):", err);
+        return null;
+    }
+}
+
+// ---- 오늘 + 내일 데이터를 합쳐서 로드 (자정 근처에도 '다음 만조/간조'가 항상 있도록) ----
+async function loadTide(){
+    let now = getNow();
+    let tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [todayItems, tomorrowItems] = await Promise.all([
+        fetchTideForDate(reqDateStrOf(now)),
+        fetchTideForDate(reqDateStrOf(tomorrow))
+    ]);
+
+    if(todayItems){
+        let merged = [...todayItems, ...(tomorrowItems || [])];
+        merged.sort((a,b) => parseDate(a.predcDt) - parseDate(b.predcDt));
+        tideData = merged;
+    }
+    // todayItems가 null(호출 실패)이면 기존 tideData 그대로 유지
+
+    lastLoadedDateStr = reqDateStrOf(now);
+    updateDateDisplay();
+    updateMudflatDisplay();
+    renderNextTideInfo();
+}
+
+// ---- 날짜 표시 ("2026년 8월 10일 (월)" 형식) ----
+function updateDateDisplay(){
+    let now = getNow();
+    const weekdayNames = ["일","월","화","수","목","금","토"];
+    document.getElementById("today").textContent =
+        now.getFullYear() + "년 " + (now.getMonth()+1) + "월 " + now.getDate() + "일 (" + weekdayNames[now.getDay()] + ")";
+}
+
+// ---- 시계 표시 (초단위) ----
+function updateClock(){
+    let now = getNow();
+    document.getElementById("clock").textContent =
+        pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds());
+}
+
+// ---- 갯벌체험 가능/불가능 판단 ----
+// 가능시간대: 간조 3시간 전 ~ 간조 순간까지
+// 불가능시간대: 간조 이후 ~ (만조 지나) ~ 다음 간조 3시간 전까지
+function getMudflatInfo(){
+    let now = getNow();
+    let futureLows = tideData.filter(t => parseDate(t.predcDt) > now && !isHigh(t));
+    if(futureLows.length === 0) return null;
+
+    let nextLow = futureLows.reduce((a,b) =>
+        parseDate(a.predcDt) < parseDate(b.predcDt) ? a : b
+    );
+    let lowTime = parseDate(nextLow.predcDt);
+    let diffMin = (lowTime - now) / 60000;
+
+    if(diffMin <= 180){
+        // 가능 상태: 나가야 하는 시각 = 다음 간조 시각
+        return { possible:true, targetTime: lowTime };
+    }else{
+        // 불가능 상태: 다음 가능 시각 = 다음 간조 3시간 전
+        let startTime = new Date(lowTime.getTime() - 180*60000);
+        return { possible:false, targetTime: startTime };
+    }
+}
+
+// ---- 상태 배너 + 시각 카드 갱신 ----
+function updateMudflatDisplay(){
+    const banner = document.getElementById("statusBanner");
+    const card = document.getElementById("mudflatCard");
+    const textEl = document.getElementById("statusText");
+    const subEl = document.getElementById("statusSub");
+    const iconLeftEl = document.getElementById("statusIconLeft");
+    const iconRightEl = document.getElementById("statusIconRight");
+    const labelEl = document.getElementById("mudflatLabel");
+    const timeEl = document.getElementById("mudflatTime");
+    if(!banner) return;
+
+    let info = getMudflatInfo();
+
+    if(!info){
+        banner.style.display = "none";
+        return;
+    }
+
+    let timeStr = pad2(info.targetTime.getHours()) + ":" + pad2(info.targetTime.getMinutes());
+
+    banner.style.display = "flex";
+    banner.classList.remove("possible", "impossible");
+    card.classList.remove("possible", "impossible");
+
+    let icon;
+    if(info.possible){
+        banner.classList.add("possible");
+        card.classList.add("possible");
+        icon = "🦀";
+        textEl.textContent = "갯벌체험 가능시간";
+        subEl.textContent = "물이 빠져 갯벌체험이 가능합니다.";
+        labelEl.textContent = "✅ 나가야 하는 시각";
+    }else{
+        banner.classList.add("impossible");
+        card.classList.add("impossible");
+        icon = "⚠️";
+        textEl.textContent = "물이 들어오는 중입니다";
+        subEl.textContent = "지금은 갯벌체험이 불가능합니다";
+        labelEl.textContent = "⏳ 나가야 하는 시각";
+    }
+    iconLeftEl.textContent = icon;
+    iconRightEl.textContent = icon;
+
+    timeEl.textContent = timeStr;
+}
+
+// ---- 다음 만조/간조 보조정보 (오늘 데이터 소진 시 자동으로 내일 데이터 사용) ----
+function findNextEvent(wantHigh){
+    let now = getNow();
+    let candidates = tideData.filter(t =>
+        parseDate(t.predcDt) > now && isHigh(t) === wantHigh
+    );
+    if(candidates.length === 0) return null;
+    return candidates.reduce((a,b) =>
+        parseDate(a.predcDt) < parseDate(b.predcDt) ? a : b
+    );
+}
+
+function formatEventDate(dateTimeStr){
+    const d = parseDate(dateTimeStr);
+    return (d.getMonth()+1) + "월 " + d.getDate() + "일";
+}
+
+function renderNextTideInfo(){
+    let nextHigh = findNextEvent(true);
+    let nextLow  = findNextEvent(false);
+
+    document.getElementById("nextHighTime").textContent =
+        nextHigh ? nextHigh.predcDt.split(" ")[1] : "--:--";
+    document.getElementById("nextHighHeight").textContent =
+        nextHigh ? nextHigh.predcTdlvVl + " cm" : "- cm";
+
+    document.getElementById("nextLowTime").textContent =
+        nextLow ? nextLow.predcDt.split(" ")[1] : "--:--";
+    document.getElementById("nextLowHeight").textContent =
+        nextLow ? nextLow.predcTdlvVl + " cm" : "- cm";
+}
+
+function tick(){
+    updateMudflatDisplay();
+    renderNextTideInfo();
+    updateClock();
+
+    // 자정을 넘기면 5분 주기를 기다리지 않고 바로 갱신
+    let curDateStr = reqDateStrOf(getNow());
+    if(curDateStr !== lastLoadedDateStr){
+        loadTide();
+    }
+}
+
+async function init(){
+    await loadTide();
+    updateClock();
+
+    const loadingEl = document.getElementById("loading");
+    if(loadingEl) loadingEl.remove();
+
+    setInterval(tick, 1000);           // 상태/시계 갱신 + 자정 전환 감지, 1초마다
+    setInterval(loadTide, REFRESH_MS); // API 재호출, 5분마다
+}
+
+init();
+
+</script>
+
+</body>
+</html>
